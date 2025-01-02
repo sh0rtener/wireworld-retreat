@@ -1,9 +1,34 @@
 ﻿var mapFile = "map.txt";
 var map = ParseFile(mapFile);
 
-foreach (var kv in map)
+PrintMap(map);
+Console.ReadLine();
+
+void PrintMap(Dictionary<Point, CellType> map)
 {
-    Console.WriteLine("x: {0}; y: {1}, v: {2}", kv.Key.X, kv.Key.Y, kv.Value);
+#pragma warning disable CA1416 // Validate platform compatibility
+    Console.WindowHeight = 100;
+    Console.WindowWidth = 100;
+#pragma warning restore CA1416 // Validate platform compatibility
+
+    foreach (var cell in map)
+    {
+        var x = cell.Key.X;
+        var y = cell.Key.Y;
+        var type = cell.Value;
+
+        Console.SetCursorPosition(x, y);
+        Console.BackgroundColor = type switch
+        {
+            CellType.Signal => ConsoleColor.Blue,
+            CellType.SignalTail => ConsoleColor.Red,
+            CellType.Wire => ConsoleColor.Green,
+            _ => throw new NotImplementedException()
+        };
+
+        Console.Write(' ');
+        Console.ResetColor();
+    }
 }
 
 Dictionary<Point, CellType> ParseFile(string file)
@@ -24,7 +49,6 @@ Dictionary<Point, CellType> ParseFile(string file)
                 case '1':
                     result.Add(point, CellType.Signal);
                     break;
-
                 case '2':
                     result.Add(point, CellType.SignalTail);
                     break;
