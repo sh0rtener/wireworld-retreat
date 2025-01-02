@@ -1,10 +1,57 @@
 ﻿var mapFile = "map.txt";
 var map = ParseFile(mapFile);
 
+var directions = new Point[] {
+    new(-1, -1),
+    new(0, -1),
+    new(+1, -1),
+    new(-1, 0),
+    new(+1, 0),
+    new(-1, +1),
+    new(0, +1),
+    new(+1, +1),
+};
+
+var cursorPoint = new Point(0, 0);
+
+var task = Task.Run(() =>
+{
+    while (true)
+    {
+        var key = Console.ReadKey();
+
+        switch (key.Key)
+        {
+            case ConsoleKey.UpArrow:
+                cursorPoint = new(cursorPoint.X, cursorPoint.Y - 1);
+                break;
+            case ConsoleKey.DownArrow:
+                cursorPoint = new(cursorPoint.X, cursorPoint.Y + 1);
+                break;
+            case ConsoleKey.LeftArrow:
+                cursorPoint = new(cursorPoint.X - 1, cursorPoint.Y);
+                break;
+            case ConsoleKey.RightArrow:
+                cursorPoint = new(cursorPoint.X + 1, cursorPoint.Y);
+                break;
+            case ConsoleKey.W:
+                cursorPoint = new(0, 0);
+                break;
+            case ConsoleKey.Spacebar:
+                if (!map.ContainsKey(cursorPoint))
+                    map[cursorPoint] = CellType.Wire;
+                break;
+        }
+
+        Console.SetCursorPosition(0, 0);
+        Console.Write(key.KeyChar);
+    }
+});
+
 while (true)
 {
     Thread.Sleep(500);
-    PrintMap(map);
+    PrintUI(map);
     Dictionary<Point, CellType> nextMap = new(map);
 
     foreach (var cell in map)
@@ -26,15 +73,10 @@ while (true)
                 var x = point.X;
                 var y = point.Y;
 
-                var count =
-                    CheckSignalInWire(x - 1, y - 1, map)
-                    + CheckSignalInWire(x, y - 1, map)
-                    + CheckSignalInWire(x + 1, y - 1, map)
-                    + CheckSignalInWire(x - 1, y, map)
-                    + CheckSignalInWire(x + 1, y, map)
-                    + CheckSignalInWire(x - 1, y + 1, map)
-                    + CheckSignalInWire(x, y + 1, map)
-                    + CheckSignalInWire(x + 1, y + 1, map);
+                var count = directions
+                    .Select(dir => new Point(x + dir.X, y + dir.Y))
+                    .Select(neighbor => CheckSignalInWire(neighbor.X, neighbor.Y, map))
+                    .Sum();
 
                 if (count is 1 or 2)
                     nextMap[point] = CellType.Signal;
@@ -51,15 +93,11 @@ int CheckSignalInWire(int x, int y, Dictionary<Point, CellType> map)
     return map.TryGetValue(new(x, y), out var type) && type == CellType.Signal ? 1 : 0;
 }
 
-void PrintMap(Dictionary<Point, CellType> map)
+void PrintUI(Dictionary<Point, CellType> map)
 {
     Console.SetCursorPosition(0, 0);
     Console.Clear();
-#pragma warning disable CA1416 // Validate platform compatibility
-    // Console.WindowHeight = 100;
-    // Console.WindowWidth = 100;
-#pragma warning restore CA1416 // Validate platform compatibility
-
+    
     foreach (var cell in map)
     {
         var x = cell.Key.X;
@@ -78,6 +116,9 @@ void PrintMap(Dictionary<Point, CellType> map)
         Console.Write(' ');
         Console.ResetColor();
     }
+
+    Console.SetCursorPosition(cursorPoint.X, cursorPoint.Y);
+    Console.Write("*");
 }
 
 Dictionary<Point, CellType> ParseFile(string file)
